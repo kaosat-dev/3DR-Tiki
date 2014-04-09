@@ -1,3 +1,5 @@
+
+
 class TSlot extends Part
   constructor:(options)->
     @defaults = {
@@ -76,6 +78,7 @@ class SmoothRodMount extends Part
       height:20
       boltDia:4
       orient:0 #1: front, 0 back
+      rodOnly : false
     }
     options = @injectOptions(@defaults,options)
     super options
@@ -86,7 +89,7 @@ class SmoothRodMount extends Part
     boltHoleSqrW = 7 
     boltHoleSqrT = 3.2
     boltHoleSqrH = @height-5
-    boltHoleSqrOffset = @rodDia/2 +4 #+ boltHoleSqrT/2
+    boltHoleSqrOffset = @rodDia/2 +3 #+ boltHoleSqrT/2
     
     nutHoleZOffset = @height-boltHoleSqrH
     nutHoleXOffset = boltHoleSqrOffset - boltHoleSqrT/2
@@ -100,19 +103,16 @@ class SmoothRodMount extends Part
 
     @subtract new Cylinder({d:@rodDia, $fn:20,h:@height,center:[0,0,false]})
     #helper hole
-    @subtract new Cube({size:[3,@boltDia,@height],center:[@rodDia/2,0,false]})
+    @subtract new Cube({size:[1,@boltDia,@height],center:[@rodDia/2,0,false]})
     
-    #nut hole
-    @subtract new Cube({size:[boltHoleSqrT,boltHoleSqrW,boltHoleSqrH],center:[boltHoleSqrOffset,0,@height-boltHoleSqrH/2]})
-    #nut hole bottom
-    @subtract boltShape.rotate([0,90,0]).translate( [nutHoleXOffset,0,nutHoleZOffset] )
-    
-    
-    #bolt hole
-    #@subtract new Cube({size:[3,@rodDia,@height],center:[@rodDia/2+4,0,false]})
-
-    #mounting hole
-    @subtract new Cylinder({d:@boltDia,h:boltHoleLength,center:[-@height/2,0,boltHoleLength/2]}).rotate([0,90,0])
+    if not @rodOnly
+      #nut hole
+      @subtract new Cube({size:[boltHoleSqrT,boltHoleSqrW,boltHoleSqrH],center:[boltHoleSqrOffset,0,@height-boltHoleSqrH/2]})
+      #nut hole bottom
+      @subtract boltShape.rotate([0,90,0]).translate( [nutHoleXOffset,0,nutHoleZOffset] )
+      
+      #mounting hole
+      @subtract new Cylinder({d:@boltDia,h:boltHoleLength,center:[-@height/2,0,boltHoleLength/2]}).rotate([0,90,0])
 
     if @orient is 1
       @mirroredX()
@@ -140,6 +140,19 @@ class TopCorner extends Part
     extrusionXOffset = 5
     angle = 60
     
+    bla = 12/2 # tslot.hsBaseW/2
+    tSlotOffset = @extrusionSize[0]/2+extrusionXOffset
+    anglingOffset = tSlotOffset + bla 
+    
+    #positions of shape inflexions
+    sideDistY = 62
+    sideDistX = anglingOffset 
+    
+    sideDistY2 = 72
+    sideDistX2 = 30
+    
+    endBlockSize = @extrusionSize[0]
+    
     #various calculations
     flatTipWidth = 20
     theoreticalTriangleTip = []
@@ -153,38 +166,33 @@ class TopCorner extends Part
     halfOFlatTipW = otherFlat/2
     h2 =  (halfOFlatTipW) / Math.tan( (halfAngle*Math.PI/180) )
     console.log("h",h,"h2",h2)
+    lateralExtrTipPos = [-h2+anglingOffset,0,0]
     
     @add new Cube({size:1,center:[-h,0,false]}).color([1,0,0])
-    @add new Cube({size:1,center:[-h2+21,0,false]}).color([1,0,0])
-
+    @add new Cube({size:1,center:[lateralExtrTipPos[0],0,false]}).color([1,0,0])
     
     #"safe" circle around smooth rods
-    smootRodProtectionDia = @smoothRodDia + 4
-    sideExtrusionStart = null
+    smootRodProtectionDia = @smoothRodDia + 2
+    sideExtrTipPos = new Vector3D( lateralExtrTipPos )
+    sideExtrusionStart = new Vector3D( sideDistX, sideDistY/2, 0 )
+    sideExtrusionDir = sideExtrTipPos.minus( sideExtrusionStart )
+    #no normalize !! ye gads!
+    sideExtrusionDir = sideExtrusionDir.dividedBy( sideExtrusionDir.length() )
     
     
-    bla = 12/2
-    tSlotOffset = @extrusionSize[0]/2+extrusionXOffset
-    anglingOffset = tSlotOffset + bla 
-    console.log("anglingOffset",anglingOffset)
+    #base shape
+    shapesSize = 0.01
+    cornerBlock = new Rectangle({size:[shapesSize,endBlockSize],center:[0,0]})
     
-
-    sideDistY = 62
-    sideDistX = anglingOffset 
+    lBlock1 = new Rectangle({size:shapesSize,center:[sideDistX,sideDistY/2]})
+    rBlock1 = new Rectangle({size:shapesSize,center:[sideDistX,-sideDistY/2]})
     
-    sideDistY2 = 75
-    sideDistX2 = 30
+    lBlock2 = new Rectangle({size:shapesSize,center:[sideDistX2,sideDistY2/2]})
+    rBlock2 = new Rectangle({size:shapesSize,center:[sideDistX2,-sideDistY2/2]})
     
-    endBlockSize = @extrusionSize[0]
-    cornerBlock = new Rectangle({size:[1,endBlockSize],center:[0,0]})
+    endBlock = new Rectangle({size:[shapesSize,@height+3],center:[sideDistX2+8,0]})
     
-    lBlock1 = new Rectangle({size:2,center:[sideDistX,sideDistY/2]})
-    rBlock1 = new Rectangle({size:2,center:[sideDistX,-sideDistY/2]})
-    
-    lBlock2 = new Rectangle({size:2,center:[sideDistX2,sideDistY2/2]})
-    rBlock2 = new Rectangle({size:2,center:[sideDistX2,-sideDistY2/2]})
-    
-    baseOutline = hull([cornerBlock, lBlock1, rBlock1, lBlock2, rBlock2])
+    baseOutline = hull([cornerBlock, lBlock1, rBlock1, lBlock2, rBlock2,endBlock])
     baseOutline = baseOutline.extrude({offset:[0,0,@height]})
     @union baseOutline
     
@@ -194,18 +202,54 @@ class TopCorner extends Part
     
     extrusionHole = new TSlot({hsToShow:[true,true,false,false]})
     extrusionHole.translate([tSlotOffset,0,0])
+    #hsBaseW
+    @subtract extrusionHole
     
-    #latteral holders for t slots
-    sideTSlotMountHoleDia = 4
-    sideTSlotMountHoleDist = 20 #distance from the tip of the t-slot
+    #latteral holders for T-slots
     sideHolderLength= 45
+    sideTSlotMountHoleDia = 4
+    sideTSlotMountHolesNb = 2
+    sideTSlotMountHolesPos = sideHolderLength/sideTSlotMountHolesNb
+    
+    
+    basePos = [false,-10,false]
+    initPos = [sideDistX,sideDistY/2, 0]
+    sideBarHoleR = new Cube({size:[sideHolderLength,@extrusionSize[0],@height], center:basePos})
+    sideBarHoleR.rotate([0,0,30])
+    sideBarHoleR.translate(sideExtrusionStart)
+    #NO BLOODY multiplyScalar !!
+    offset = -smootRodProtectionDia/2
+    offset = new Vector3D(sideExtrusionDir.x*offset,sideExtrusionDir.y*offset,0)
+    sideBarHoleR.translate offset
+    #@add sideBarHoleR
+    @subtract sideBarHoleR
+    sideBarHoleL = sideBarHoleR.clone().mirroredY()
+    @subtract sideBarHoleL
+    
+    actualStart = sideExtrusionStart.plus( offset )
+    
+    sideExtrPerpDir =  new Vector3D(-sideExtrusionDir.y,sideExtrusionDir.x,0)
+    #offset along normal * T-SlotWidth/2 + sideHolderWidth/2
+    
     sideHolderWidth = 5
-    sideHolderR = new Cube({size:[sideHolderLength,sideHolderWidth,@height], center:[0,0, false]})
+    sideOffset = @extrusionSize[0] + sideHolderWidth
+    sideHolderROffset = new Vector3D(sideExtrPerpDir.x*sideOffset,sideExtrPerpDir.y*sideOffset,0)
+    
+    centerInit = [false,sideHolderWidth/2, false]
+    
+    sideHolderR = new Cube({size:[sideHolderLength,sideHolderWidth,@height], center:centerInit})
+    for i in [0...sideTSlotMountHolesNb]
+      sideHolderMountHole = new Cylinder({d:sideTSlotMountHoleDia,h:sideHolderWidth*10,center:[true,@height/2,true]})
+      sideHolderMountHole.rotate([90,0,0])
+      sideHolderMountHole.translate([sideTSlotMountHolesPos/2+i*sideTSlotMountHolesPos,0,0])
+      sideHolderR.subtract sideHolderMountHole
     sideHolderR.rotate([0,0,30])
-    sideHolderR.translate([sideHolderLength/2+sideDistX2/2+10,sideHolderWidth/2+sideDistY2/2-15,0])
+    sideHolderR.translate actualStart.plus(sideHolderROffset)
     @union sideHolderR
     sideHolderL = sideHolderR.clone().mirroredY()
     @union sideHolderL
+    
+    ###
     
     bla = sideHolderLength
     sideBarHoleR = new Cube({size:[bla,20,@height], center:[0,0, false]})
@@ -215,10 +259,8 @@ class TopCorner extends Part
     #@add sideBarHoleR
     @subtract sideBarHoleR
     @subtract sideBarHoleR.clone().mirroredY()
+    ###
     
-    
-    #hsBaseW
-    @subtract extrusionHole
     
     extrusionMountDia = 5
     #extrusion mount hole reinforcement
@@ -258,18 +300,7 @@ class TopCorner extends Part
     for i in [-1,1]
       sr = new SmoothRodMount({rodDia:@smoothRodDia,height:@height,orient:1})#,boltDia:@sRMountDia,orient:1
       @subtract sr.inverse().translate([smoothRodXPos,i*smoothRodYDist/2,0])
-    
-      ###
-      @subtract new Cylinder({d:@smoothRodDia, $fn:20,h:@height,center:[smoothRodXPos,i*smoothRodYDist/2,false]})
-      #mounting cube
-      @subtract new Cube({size:[2,@smoothRodDia-1,@height],center:[smoothRodXPos+@smoothRodDia/2,i*smoothRodYDist/2,false]})
-      #bolt hole
-      @subtract new Cube({size:[3,@smoothRodDia,@height],center:[smoothRodXPos+@smoothRodDia/2+4,i*smoothRodYDist/2,false]})
-      
-      #mounting hole
-      @subtract new Cylinder({d:sRMountDia,h:100,center:[-@height/2,i*smoothRodYDist/2,0]}).rotate([0,90,0])
-      ###
-    @color([0.8,0.53,0.1])
+    @color([0.8,0.53,0.1,0.8])
     
 
 class BottomCorner extends Part
