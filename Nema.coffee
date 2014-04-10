@@ -1,3 +1,5 @@
+ 
+
 # Nemo 17 Pump 
 # taken from https://github.com/se5a/CoffeeScad_PartsLibrary
 
@@ -19,10 +21,15 @@ class NemaMotor extends Part
       mountingholes_fromcent : 15.5,
       mountingholes_radius : 1.5,
       mountingholes_depth : 4.5
+      generateAtConstruct:true
     }
     options = @injectOptions(@defaults,options)
     super options
     
+    if @generateAtConstruct
+      @generate()
+  
+  generate:->
     shaftsub = new Cube(
       {
         size: [@shaft_radius * 2, @shaft_radius * 2, @shaft_len]
@@ -109,11 +116,8 @@ class NemaMotor extends Part
       mountingholes.clone().translate [-@mountingholes_fromcent, -@mountingholes_fromcent, 0]
     )
     
-    
     motor = motorBody_center.union([motorBody_base, motorBody_mountPlate, shaft])
     #motor.subtract(motorBody_sub)
     
     @union(motor)
-
-
 

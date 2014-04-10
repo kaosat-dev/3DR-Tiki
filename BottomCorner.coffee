@@ -7,6 +7,7 @@ class BottomCorner extends CornerBase
       height : 40
       smoothRodMounts:false
       tSlotHeads:[true,true,true,false]
+      idlerDia : 20
     }
     options = @injectOptions(@defaults,options)
     super options
