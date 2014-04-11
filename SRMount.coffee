@@ -21,10 +21,10 @@ class SmoothRodMount extends Part
     boltHoleSqrBorder = 1
     boltHoleSqrW = 7 
     boltHoleSqrT = 3.2
-    boltHoleSqrH = @height-5
+    boltHoleSqrH = Math.max(@height-5,0.001)
     boltHoleSqrOffset = @rodDia/2 +3 #+ boltHoleSqrT/2
     
-    nutHoleZOffset = @height-boltHoleSqrH
+    nutHoleZOffset = Math.max(@height-boltHoleSqrH, 0.001)
     nutHoleXOffset = boltHoleSqrOffset - boltHoleSqrT/2
 
     

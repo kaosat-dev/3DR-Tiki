@@ -8,21 +8,42 @@ class TSlot extends Part
       height:30
       centerHole:false
       hsToShow:[true,true,true,true]
+      hsHeights:[null,null,null,null]#hack
+      
+      generateAtConstruct:true
     }
     options = @injectOptions(@defaults,options)
     super options
-    @generate()
+    
+    realHsHeights=[]
+    for height in @hsHeights
+      if height == null
+        realHsHeights.push(@height)
+      else
+        realHsHeights.push(height)
+    @hsHeights = realHsHeights
+    console.log(@hsHeights)
+    
+    #hardcoded values for the shape of the "hammerhead"
+    @hsBaseW = 12
+    @hsBaseH = 1
+    @hsHeight = 4
+    @hsFootW = 6
+    @hsFootH = 2
+    
+    if @generateAtConstruct
+      @generate()
     
   generate:->
     #hs : hammershape
     centerDia = 4.2
     
-    hsBaseW = 12
-    hsBaseH = 1
-    hsHeight = 4
+    hsBaseW = @hsBaseW
+    hsBaseH = @hsBaseH
+    hsHeight = @hsHeight
     
-    hsFootW = 6
-    hsFootH = 2
+    hsFootW = @hsFootW
+    hsFootH = @hsFootH
     hsShapeLength = (hsHeight + hsFootW)
     
     hsFootPos = hsFootH/2
@@ -40,30 +61,35 @@ class TSlot extends Part
     
     
     baseShape = new Rectangle({size:[@width,@depth],center:true})
+    baseShape = baseShape.extrude({offset:[0,0,@height]})
+    @union baseShape
     
     if @hsToShow[0]
       notch = hs.clone()
       notch.translate( [0,-hsShapeLength] )
-      baseShape.subtract( notch )
+      notch = notch.extrude({offset:[0,0,@hsHeights[0]]})
+      @subtract( notch )
     
     if @hsToShow[1]
       notch = hs.clone()
       notch.rotateZ(180).translate( [0,hsShapeLength] )
-      baseShape.subtract( notch )
+      notch = notch.extrude({offset:[0,0,@hsHeights[1]]})
+      @subtract( notch )
     
     if @hsToShow[2]
       notch = hs.clone()
       notch.rotateZ( 90 ).translate( [hsShapeLength,0] )
-      baseShape.subtract( notch )
+      notch = notch.extrude({offset:[0,0,@hsHeights[2]]})
+      @subtract( notch )
     
     
     if @hsToShow[3]
       notch = hs.clone()
       notch.rotateZ( -90 ).translate( [-hsShapeLength,0] )
-      baseShape.subtract( notch )
+      notch = notch.extrude({offset:[0,0,@hsHeights[3]]})
+      @subtract( notch )
       
-    baseShape = baseShape.extrude({offset:[0,0,@height]})
-    @union baseShape
+    
     
     if @centerHole
       @subtract new Cylinder({d:centerDia,h:@height})

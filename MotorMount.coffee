@@ -3,20 +3,28 @@
 class MotorMount extends Part
   constructor:(options)->
     @defaults = {
-      width:50
-      height : 50
+      width: 47
+      height : 47
       thickness:8
       smoothRodMounts : true
+      generateAtConstruct:true #special flag
+      
+      mntHolesLength : 7
+      motor:null
+      motorType:"Nema17"
     }
     options = @injectOptions(@defaults,options)
     super options
-    @generate()
+    
+    if @generateAtConstruct
+      @generate()
     
   generate:->
+    mntHoleSLng = @mntHolesLength
     plate = new Cube({size:[@thickness,@width,@height],center:[true,true,false]})
     
     motor = new NemaMotor({generateAtConstruct:false})
-    
+    motor.pilotRing_radius = 15
     pilotRing = new Cylinder(
       {
         h: @thickness
@@ -36,7 +44,6 @@ class MotorMount extends Part
     
     
     mntHolRad = motor.mountingholes_radius
-    mntHoleSLng = 10
     mntHoleSOffs = mntHoleSLng/2 - mntHolRad
     mntHoleSStart = new Circle({r:mntHolRad,$fn:10,center:[mntHoleSOffs,0]})
     mntHoleSEnd = new Circle({r:mntHolRad,$fn:10,center:[-mntHoleSOffs,0]})
