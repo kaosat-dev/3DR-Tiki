@@ -120,4 +120,3 @@ class NemaMotor extends Part
     #motor.subtract(motorBody_sub)
     
     @union(motor)
-

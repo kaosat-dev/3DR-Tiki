@@ -1,17 +1,23 @@
 include("MotorMount.coffee")
+include("TSlot.coffee")
+include("Bolt.coffee")
 
 class CornerBase extends Part
   constructor:(options)->
     @defaults = {
       endBlockSize: [10,10]
       extrusionSize:[20,20]
+      extrusionBorders : [5,2]
       extrusionMountDia:5
       
       sideExtrusionMountDia:4
-      sideArmsLength:45
+      sideArmsLength:50
       sideArmsWidth :5
+      sideArmsMountHoles:3
+      sideArmsMountHolesOffset:0
+      sideArmsMountHolesPosOveride:null
       
-      idlerDia : 19.5
+      idlerDia : 20
       idlerZPos: null
       idlerCentered:true
       
@@ -29,8 +35,18 @@ class CornerBase extends Part
       
       tSlotHeads : [true,true,false,false]
       tSlotHeadSizes: [null,null,null,null]
+      tSlotFootOnly: [false,false,false,false]
+      
+      vertCableHoles:true
+      vertCableHolesDia:5
+      vertCableHolesShape:Cylinder
+      
+      sideTSlotLengths:200
+      
+      endStopOffset: 13 #offset from the inner part of the "foot" to the endstop center
       
       generateAtConstruct:true
+      adjuster:0.01
     }
     options = @injectOptions(@defaults,options)
     super options
@@ -38,10 +54,21 @@ class CornerBase extends Part
     if @smoothRodHoleDepth == null
       @smoothRodHoleDepth = @height
     
-    @extrusionBorders = [4,2]
     
     #"safe" circle around smooth rods
     @smootRodProtectionDia = @smoothRodDia + 4
+
+    #Mounting T-nuts size:
+    #length : 10 mm http://www.profiles-pour-tous.com/ecrous-de-fixation-pour-profiles-6-mm/241-lot-de-10-ecrous-de-fixation-pour-profiles-a-fente-de-6-mm-taraudage-m5.html
+    tNutLength =10
+    tNutWidth  = 10
+    #size of "cube" tSlot sliding helper
+    #@tSlotHeadSizes[3] = (@height-@extrusionMountDia)/2 - tNutLength/2
+    
+    
+    
+    @tSlotRef = new TSlot({width:@extrusionSize[0],depth:@extrusionSize[1],generateAtConstruct:false})
+
     
     if @generateAtConstruct
       @generate()
@@ -52,23 +79,21 @@ class CornerBase extends Part
     #@height = @extrusionSize[0]
 
     
-    
   generate:->
     angle = 60 #duh !
+    adjuster = @adjuster
+    tSlotRef = @tSlotRef
     #store a non renderered tslot instance, for size reference
-    tSlotRef = new TSlot({width:@extrusionSize[0],depth:@extrusionSize[1],generateAtConstruct:false})
+    tSlotWidth = tSlotRef.width
+    tSlotDepth = tSlotRef.depth
     
     extrusionBorders = @extrusionBorders
     smootRodProtectionDia = @smootRodProtectionDia
     
     extrusionXOffset = extrusionBorders[0]
-    extrusionWidth = tSlotRef.width
     
-    footBaseSize = new Vector2D( tSlotRef.depth+extrusionBorders[0]*2,
+    footBaseSize = new Vector2D( tSlotDepth+extrusionBorders[0]*2,
       tSlotRef.width+extrusionBorders[1]*2 )
-    
-    footWidth = @extrusionSize[0] + 4
-    footLength = @extrusionSize[1] + 9.5
     
     tSlotOffset = tSlotRef.depth/2+extrusionXOffset
     anglingOffset = tSlotOffset + tSlotRef.hsBaseW/2 #where does the angling of the sides start
@@ -78,6 +103,7 @@ class CornerBase extends Part
     
     #vertical TSlot position (center of TSlot)
     vertTSlotPos = new Vector3D(tSlotOffset,0,0)
+    @vertTSlotPos = vertTSlotPos
     
     #positions of shape inflexions
     firstInflectPoint  = new Vector2D(anglingOffset,62/2)
@@ -92,8 +118,7 @@ class CornerBase extends Part
     endBlockSize = @extrusionSize[0]
     
     #various calculations
-    flatTipWidth = tSlotRef.width
-    theoreticalTriangleTip = []
+    flatTipWidth = tSlotWidth
     
     halfAngle = angle/2
     sStart = new Vector3D(0,10,0 )
@@ -105,6 +130,8 @@ class CornerBase extends Part
     h2 =  (halfOFlatTipW) / Math.tan( (halfAngle*Math.PI/180) )
     lateralExtrTipPos = [-h2+anglingOffset,0,0]
     
+    #this is the tip of the triangle of latteral extrusions
+    
     
     sideExtrTipPos = new Vector3D( lateralExtrTipPos )
     sideExtrusionStart = new Vector3D( sideDistX, sideDistY/2, 0 )
@@ -114,10 +141,9 @@ class CornerBase extends Part
     #-----------------
     #latteral holders for T-slots
     sideArmLength= @sideArmsLength
-    sideTSlotMountHoleDia = @sideExtrusionMountDia#4
-    sideTSlotMountHolesNb = 2
+    sideTSlotMountHoleDia = @sideExtrusionMountDia
+    sideTSlotMountHolesNb = @sideArmsMountHoles 
     sideTSlotMountHolesPos = sideArmLength/sideTSlotMountHolesNb
-    
     
     #NO BLOODY multiplyScalar !!
     offset = -smootRodProtectionDia/2
@@ -130,17 +156,76 @@ class CornerBase extends Part
     #offset along normal * T-SlotWidth/2 + sideArmWidth/2
     
     sideArmWidth = @sideArmsWidth
-    sideOffset = @extrusionSize[0] + sideArmWidth/2
+    sideOffset = tSlotWidth + sideArmWidth/2
     sideHolderROffset = new Vector3D(sideExtrPerpDir.x*sideOffset,sideExtrPerpDir.y*sideOffset,0)
     
     #HERE
     #TODO: simplify
-    tSlotWidth = tSlotRef.width
     sideExtrPerpDir2 = new Vector3D(-sideExtrusionDir.y*tSlotWidth/2,sideExtrusionDir.x*tSlotWidth/2,0)
     sideTSlotStart = sideExtrusionStart.plus( offset ).plus( sideExtrPerpDir2)
     sideArmStart = actualStart.plus(sideHolderROffset)
     
-    bloOffset = @extrusionSize[0] + sideArmWidth
+    
+    #this is the tip of the triangle of latteral extrusions
+    halfAngleRadian = halfAngle * Math.PI/180
+    heading = new Vector3D(Math.cos(halfAngleRadian),Math.sin(halfAngleRadian))
+    
+    halfoRTipW = sideTSlotStart.y/2
+    hOff =  (halfoRTipW) / Math.tan( (halfAngle*Math.PI/180) )
+    realTip = new Vector3D([sideTSlotStart.x-hOff*2,0,0])
+    
+    realTipToSideTSlotStartVect = realTip.minus( sideTSlotStart )
+    realTipToSideTSlotStartLengh = realTipToSideTSlotStartVect.length()
+    sideTslotLengths = @sideTSlotLengths
+    totalSideLength = realTipToSideTSlotStartLengh + sideTslotLengths
+    baseVectorTip = realTipToSideTSlotStartVect.clone().unit()
+    
+    halfSidePos = new Vector3D(baseVectorTip.x*-totalSideLength/2,-baseVectorTip.y*totalSideLength/2,0)
+    @add new Cube({size:[1,1,1],center:halfSidePos}).color([1,1,0])
+    @add new Cube({size:[1,1,20],center:realTip}).color([1,0,0])
+    @add new Cube({size:[1,1,20],center:sideTSlotStart}).color([1,0,0])
+
+    
+    halfSideLength = realTipToSideTSlotStartLengh+ sideTslotLengths/2
+    centerPosition = halfSideLength/Math.cos(halfAngleRadian) - Math.abs(realTip.x)
+    circleRadius = Math.sin(halfAngleRadian)*centerPosition
+    console.log("sideTslotLengths",sideTslotLengths,"realTip.x",realTip.x,"halfSideLength", halfSideLength,"centerPosition",centerPosition,"radius",circleRadius)
+    
+    #TODO : here calulate center without using "realTip", just by using
+    #the length of the latterial tSlots (/2)
+    #vector from angle
+    #V.x = cos(A)
+    #V.y = sin(A)
+    fooBarBaz = @sideTSlotLengths/2
+    fooBuz = new Vector3D(heading.x*fooBarBaz
+      ,heading.y*fooBarBaz,0).plus sideTSlotStart
+    #centerPosition= fooBuz.x
+    @add new Cube({size:[1,1,20],center:fooBuz}).color([1,0,0])
+    #console.log("centerPosition",fooBuz.x)
+    @add new Cube({size:[1,1,20],center:[centerPosition,0,0]}).color([0,1,0])
+    
+    
+    deltaSmoothRodOffset = centerPosition- smoothRodXPos
+    deltaCarriageOffset  = 17#measure IRL
+    deltaEffectorOffset  = 23 #25 measured IRL, 23 in theory
+    deltaMinAngle = 30
+    deltaMinAngleRadian = deltaMinAngle*Math.PI/180
+    ballJointLength = 17
+    deltaRadius = deltaSmoothRodOffset-(deltaEffectorOffset + deltaCarriageOffset)
+    deltaDiagRodLengthEyeToEye = deltaRadius/Math.sin(deltaMinAngleRadian)
+    deltaDiagRodLengthRodOnly = deltaDiagRodLengthEyeToEye - (2 * ballJointLength)
+    deltaVerticalDistanceFromPlatform = Math.cos(deltaMinAngleRadian)*deltaDiagRodLengthEyeToEye
+    console.log("deltaArmAngle",deltaMinAngle,"deltaSmoothRodOffset",deltaSmoothRodOffset,"deltaRadius",deltaRadius
+    , "deltaDiagRodLength eye to eye",deltaDiagRodLengthEyeToEye
+    ,"deltaDiagRodLengthRodOnly",deltaDiagRodLengthRodOnly
+    ,"deltaVerticalDistanceFromPlatform",deltaVerticalDistanceFromPlatform)
+
+    #draw inner circle
+    #innerCircle = new Circle({r:circleRadius,center:[centerPosition,0]})
+    #@add innerCircle.extrude({offset:0,0,1})
+    
+    
+    bloOffset = tSlotWidth + sideArmWidth
     blo = new Vector3D(sideExtrPerpDir.x*bloOffset,sideExtrPerpDir.y*bloOffset,0)
     sideArmTip = actualStart.plus(blo)
     
@@ -148,8 +233,8 @@ class CornerBase extends Part
     @add new Cube({size:1,center:sideArmStart}).color([1,0,0])
     @add new Cube({size:1,center:sideArmTip}).color([1,1,1])
 
-    #@add new Cube({size:1,center:tip}).color([1,0,0])
-    #@add new Cube({size:1,center:[lateralExtrTipPos[0],0,false]}).color([1,0,0])
+    @add new Cube({size:1,center:realTip}).color([1,0,1])
+    @add new Cube({size:1,center:[lateralExtrTipPos[0],0,false]}).color([1,0,0])
     
     #@add new Cube({size:1,center:firstBlockDir}).color([1,1,0])
     #@add new Cube({size:1,center:firstInflectPoint.toVector3D()}).color([0,0,1])
@@ -157,19 +242,17 @@ class CornerBase extends Part
     
     @add new Cube({size:1,center:sideExtrusionStart}).color([0,1,0])
     
-    #------------------
-    
     #------------
     #base shape
 
     baseShapePts = CAGBase.fromPoints([
-      [0,0]
+      [0,-adjuster]
       [0,endBlockSize/2]
       [sideDistX,sideDistY/2]
       [sideDistX2,sideDistY2/2]
       [sideArmTip.x,sideArmTip.y]
       [footBaseSize.x,footBaseSize.y/2]
-      [footBaseSize.x,0]
+      [footBaseSize.x,-adjuster]
     ])
     baseShape = baseShapePts.extrude({offset:[0,0,@height]})
     @union baseShape
@@ -181,7 +264,7 @@ class CornerBase extends Part
     
     #vertical extrusion hole
     extrusionHole = new TSlot({height:@footHeight, hsToShow:@tSlotHeads
-      ,hsHeights:@tSlotHeadSizes})
+      ,hsHeights:@tSlotHeadSizes,hsFootOnly:@tSlotFootOnly})
     
     translate(vertTSlotPos,[footBlock,extrusionHole])
     
@@ -194,7 +277,11 @@ class CornerBase extends Part
     @union footBlock.color([1,0,0])
     @subtract extrusionHole
     
-    sideTSlotCutR = new Cube({size:[sideArmLength,@extrusionSize[0],@height]
+    #@add new TSlot({height:@footHeight
+    #  ,hsHeights:@tSlotHeadSizes,fudge:false}).translate(vertTSlotPos).color([0,1,0,0.5])
+    
+    #cut away lateral positions for tslots
+    sideTSlotCutR = new Cube({size:[sideArmLength,tSlotWidth,@height]
       , center:[false,true,false]})
     sideTSlotCutR.rotate([0,0,30]).translate( sideTSlotStart )
     
@@ -203,19 +290,26 @@ class CornerBase extends Part
     sideTSlotCutL = sideTSlotCutR.clone().mirroredY()
     @subtract sideTSlotCutL
     
+    #just a test : REMOVE me
+    sideTSlotFull = new Cube({size:[100,tSlotWidth,@height]
+      , center:[false,true,false]})
+    sideTSlotFull.rotate([0,0,30]).translate( sideTSlotStart )
+    @add sideTSlotFull.color([1,0,1,0.5])
+    
     centerInit = [false,true, false]
     sideHolderR = new Cube({size:[sideArmLength,sideArmWidth,@height], center:centerInit})
     
-    nbVerticalTSlots = @height/@extrusionSize[0]
-    bli = @extrusionSize[0]
     
-    for i in [0...sideTSlotMountHolesNb]
-      for j in [0...nbVerticalTSlots]
-        sideHolderMountHole = new Cylinder({d:sideTSlotMountHoleDia,h:sideArmWidth*10,center:[true,false,true]})
-        sideHolderMountHole.rotate([90,0,0])
-        sideHolderMountHole.translate([sideTSlotMountHolesPos/2+i*sideTSlotMountHolesPos,0,j*bli+bli/2])
-        sideHolderR.subtract sideHolderMountHole
-    sideHolderR.rotate([0,0,30])
+    nbVerticalTSlots = @height/tSlotDepth
+    sideArmsMountHolesPosOveride = @sideArmsMountHolesPosOveride
+    
+    sideHolderR = new TSlotSideMount({length:sideArmLength
+      ,thickness:sideArmWidth,width:@height
+      ,mountHolePositions:sideArmsMountHolesPosOveride})
+    
+    
+    sideHolderR.mirroredY()
+    sideHolderR.rotate([0,0,halfAngle])
     sideHolderR.translate actualStart.plus(sideHolderROffset)
     @union sideHolderR
     sideHolderL = sideHolderR.clone().mirroredY()
@@ -225,26 +319,25 @@ class CornerBase extends Part
     #vertical extrusion front mount hole reinforcement
     extrusionMountDia = @extrusionMountDia
     reinfoHeight = 1
-    reinfoDia = extrusionMountDia+8
-    extrusionMountHoleReinforce = new Cylinder({d:reinfoDia,h:reinfoHeight,center:[-@footHeight/2,0,-reinfoHeight/2]}).rotate([0,90,0])
+    reinfoDia = extrusionMountDia+10
+    #hack to avoid coplanar face/tjunctions at export
+    adjHack=2
+    extrusionMountHoleReinforce = new Cylinder({d:reinfoDia,h:reinfoHeight+adjHack
+      ,center:[-@footHeight/2,adjuster,-reinfoHeight/2+adjHack/2]}).rotate([0,90,0])
     @union extrusionMountHoleReinforce
+    #@add extrusionMountHoleReinforce
     
     #vertical extrusion front mount hole
     extrusionMountDepth = reinfoHeight + extrusionXOffset 
     extrusionMountPos = extrusionXOffset/2 - reinfoHeight/2
-    extrusionMountHole = new Cylinder({d:extrusionMountDia,h:extrusionMountDepth,center:[-@footHeight/2,0,extrusionMountPos]}).rotate([0,90,0])
+    extrusionMountHole = new Cylinder({d:extrusionMountDia,h:extrusionMountDepth+adjuster
+      ,center:[-@footHeight/2,0,extrusionMountPos]}).rotate([0,90,0])
     @subtract extrusionMountHole
-
-    #extrusion "lock" block : small square at the tip
-    extrusionLockBlocLng = 6
-    extrusionLockBlocHeight = (@height-extrusionMountDia)/2
-    extrusionlockBlocPos = extrusionLockBlocLng/2 + extrusionXOffset 
-    extrusionLockBloc = new Cube({size:[extrusionLockBlocLng,6,extrusionLockBlocHeight],center:[extrusionlockBlocPos,true,false]})
-    @union extrusionLockBloc
     
-    #idler rounding
-    idlerHoleDepth = 6
-    idlerHolePos = idlerHoleDepth + @extrusionSize[0]
+    
+    #idler cutaway
+    idlerHoleDepth = extrusionBorders[0]#6
+    idlerHolePos = vertTSlotPos.x+ tSlotDepth/2 +idlerHoleDepth/2
     if @idlerCentered
       idlerHoleZPos = -@height/2
     else
@@ -252,15 +345,33 @@ class CornerBase extends Part
     if @idlerZPos != null
       idlerHoleZPos = @idlerZPos
       
-    idlerHole = new Cylinder({d:@idlerDia,h:10,center:[idlerHoleZPos,0,idlerHolePos]}).rotate([0,90,0])
+    idlerHole = new Cylinder({d:@idlerDia,h:idlerHoleDepth,center:[idlerHoleZPos,0,idlerHolePos]}).rotate([0,90,0])
     @subtract idlerHole
+    #@add idlerHole
     
     sRMountBlockDepth = 4
     sRMountDia = @smoothRodMountDia
     rodOnly = !(@smoothRodMounts)
     
+    smoothRodPos = new Vector2D(smoothRodXPos, @smoothRodYDist/2)
+    
     for i in [-1,1]
       sr = new SmoothRodMount({rodDia:@smoothRodDia,height:@smoothRodHoleDepth,orient:1,rodOnly:rodOnly,helperHole:@smoothRodHelpers,boltHoleLength:10})#,boltDia:@sRMountDia,orient:1
       @subtract sr.inverse().rotate([0,0,@smoothRodAngle*i]).translate([smoothRodXPos,i*@smoothRodYDist/2,0])
-    @color([0.8,0.53,0.1,0.7])
     
+    @color([0.8,0.53,0.1,0.7])
+
+    
+    #cable passing hole
+    if @vertCableHoles
+      cableHoleDia = @vertCableHolesDia
+      cableHolePos = new Vector3D(vertTSlotPos.x, footBaseSize.x/2+2,
+      0)
+      #cableHole =new Cube({size:[7,4,@height],center:[true,true,false]})
+      cableHole = new Cylinder({d:cableHoleDia,h:@height,center:[true,true,false]})
+      @subtract cableHole.translate(cableHolePos)
+      @subtract cableHole.clone().mirroredY()
+    
+    #assign to instance, so they can be re-used
+    @footBaseSize = footBaseSize
+    @vertTSlotPos = vertTSlotPos
