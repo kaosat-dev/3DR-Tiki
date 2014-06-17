@@ -6,7 +6,8 @@ class TNut extends Nut
       thickness:3.2
       holeDia:4
       headDia:7.66
-      variant:"m4"
+      length:10
+      variant:"M3"
       
       generateAtConstruct:true
       outlineOnly:false
@@ -18,17 +19,15 @@ class TNut extends Nut
       @generate()
       
   generate:->
-    nut = new Nut({outlineOnly:true})
-    tHeadShape = new TSlot({hsToShow:[false,false,true,false]})
-    tNut = new Cube({size:[20,20,10],center:[true,true,false]}).subtract tHeadShape
-    nut.rotate([0,90,0])
-    nut.translate [0,0,5]
-    tNut.translate [-4.3,0,0]
+    nut = new Nut({outlineOnly:true,variant:@variant})
+    tNut = new TSlot({height:@length,hsToShow:[false,false,true,false],invert:true})
+    tNut.rotate [0,-90,0]
+    zOffset = 4.3#tNut.realDepth/2-(tNut.realhsBaseH+tNut.realhsHeight)#4.3
+    #console.log "hsShapeLength",tNut.hsShapeLength, zOffset, tNut.realhsBaseH,tNut.realhsHeight, tNut.hsFootH
+    #tNut.translate [-zOffset,0,0]
+    tNut.translate [@length/2,0,-zOffset]
     tNut.subtract nut
     
-    hole = new Cylinder({d:4,h:20})
-    hole.rotate [0,90,0]
-    hole.translate [0,0,5]
+    hole = new Cylinder({d:nut.holeDia,h:20,center:[true,true,false]})
     tNut.subtract hole
-    tNut.rotate [0,-90,0]
     @union tNut

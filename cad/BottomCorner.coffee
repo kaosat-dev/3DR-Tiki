@@ -14,7 +14,7 @@ class BottomCorner extends CornerBase
       
       sideArmsMountHoles:2
       sideArmsMountHolesOffset:-2
-      sideArmsMountHolesPosOveride: [8,38]
+      sideArmsMountHolesPosOveride: [5,44.6]
       
       motorMountThickness:6
       motorMountBoltDia:3#used for mounting holes and hex key hole system
@@ -146,11 +146,22 @@ class BottomCorner extends CornerBase
     hexKeyMountHole.color([0,1,0])
     hexKeyMountHole.translate([motorMountOffset-motorMountBoltHoleEnd-15,16,10])
     
-    otherMountHole = new Cylinder({d:5,h:100,center:[false,true,false]})
+    ###
+    otherMountHole = new Cylinder({d:4,h:52,center:[false,true,false]})
     otherMountHole.rotate([90,0,90])
-    otherMountHole.translate([0,16,10])###
+    otherMountHole.translate([0,15.5,8.2])
     
     #@add otherMountHole.color([0,0,1])
     #@add hexKey
-    #@subtract hexKeyMountHole
+    @subtract otherMountHole.color [1,0,0]
+    @subtract otherMountHole.clone().mirroredY()
+    
+    testTool = new Cylinder({d:3,h:52,center:[false,true,false]})
+    testTool.rotate([90,0,90])
+    testTool.translate([0,15.5,8.2]).color [1,0,0]
+    @add testTool
+    
+
+
+    
     @color([0.8,0.53,0.1,0.9])

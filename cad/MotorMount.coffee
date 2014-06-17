@@ -10,6 +10,7 @@ class MotorMount extends Part
       generateAtConstruct:true #special flag
       
       mntHolesLength : 7
+      mntHolesDia: 3.5
       motor:null
       motorType:"Nema17"
     }
@@ -38,12 +39,12 @@ class MotorMount extends Part
     
     mountingholes = new Cylinder({
       h: @thickness*2
-      r: motor.mountingholes_radius
+      d: @mntHolesDia
       center: [-@height/2, true, true ]
     })
     
     
-    mntHolRad = motor.mountingholes_radius
+    mntHolRad = @mntHolesDia/2#motor.mountingholes_radius
     mntHoleSOffs = mntHoleSLng/2 - mntHolRad
     mntHoleSStart = new Circle({r:mntHolRad,$fn:10,center:[mntHoleSOffs,0]})
     mntHoleSEnd = new Circle({r:mntHolRad,$fn:10,center:[-mntHoleSOffs,0]})

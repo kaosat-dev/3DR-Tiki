@@ -11,6 +11,7 @@ class TSlot extends Part
       hsHeights:[null,null,null,null]#hack
       hsFootOnly:[false,false,false,false]#only draw rectangle "foot"
       
+      invert:false
       fudge:true#if too tight when printing (a negative), turn this on
       generateAtConstruct:true
     }
@@ -27,11 +28,11 @@ class TSlot extends Part
     console.log(@hsHeights)
     
     #hardcoded values for the shape of the "hammerhead"
-    @hsBaseW = 12
-    @hsBaseH = 1
+    @hsBaseW = 12#length of wide base of hammer
+    @hsBaseH = 1 #straight height of base
     @hsHeight = 4
-    @hsFootW = 6
-    @hsFootH = 2
+    @hsFootW = 6 #width of base of the foot ()
+    @hsFootH = 2 #height of the foot
     
     if @generateAtConstruct
       @generate()
@@ -60,6 +61,14 @@ class TSlot extends Part
       
       width += offset/1.5
       depth += offset/1.5
+      
+      @realDepth = depth
+      @realWidth = width
+      @realhsBaseW = hsBaseW
+      @realhsHeight = hsHeight
+      @realhsFootW = hsFootW
+      @realhsBaseH = hsBaseH
+      @hsShapeLength =hsShapeLength
     
     hsFootPos = hsFootH/2
     hsBasePos = hsFootH + hsBaseH/2
@@ -78,7 +87,9 @@ class TSlot extends Part
     
     baseShape = new Rectangle({size:[width,depth],center:true})
     baseShape = baseShape.extrude({offset:[0,0,@height]})
-    @union baseShape
+    
+    if not @invert 
+        @union baseShape
     
     if @hsToShow[0]
       hs = hShape
@@ -87,7 +98,10 @@ class TSlot extends Part
       notch = hs.clone()
       notch.translate( [0,-hsShapeLength] )
       notch = notch.extrude({offset:[0,0,@hsHeights[0]]})
-      @subtract( notch )
+      if @invert 
+        @union( notch )
+      else
+        @subtract( notch )
     
     if @hsToShow[1]
       hs = hShape
@@ -96,7 +110,10 @@ class TSlot extends Part
       notch = hs.clone()
       notch.rotateZ(180).translate( [0,hsShapeLength] )
       notch = notch.extrude({offset:[0,0,@hsHeights[1]]})
-      @subtract( notch )
+      if @invert 
+        @union( notch )
+      else
+        @subtract( notch )
     
     if @hsToShow[2]
       hs = hShape
@@ -105,7 +122,10 @@ class TSlot extends Part
       notch = hs.clone()
       notch.rotateZ( 90 ).translate( [hsShapeLength,0] )
       notch = notch.extrude({offset:[0,0,@hsHeights[2]]})
-      @subtract( notch )
+      if @invert 
+        @union( notch )
+      else
+        @subtract( notch )
     
     
     if @hsToShow[3]
@@ -115,8 +135,11 @@ class TSlot extends Part
       notch = hs.clone()
       notch.rotateZ( -90 ).translate( [-hsShapeLength,0] )
       notch = notch.extrude({offset:[0,0,@hsHeights[3]]})
-      @subtract( notch )
-      
+      if @invert 
+        @union( notch )
+      else
+        @subtract( notch )
     
+      
     if @centerHole
       @subtract new Cylinder({d:centerDia,h:@height})
