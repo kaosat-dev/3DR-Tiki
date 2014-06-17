@@ -1,0 +1,9 @@
+{
+   "title": "3DR-Tiki",
+   "URL": "http://kaosat-dev.github.com/3DR-Tiki",
+   "author": "Mark 'kaosat-dev' Moissette",
+   "license": "AGPL3",
+   "tags": ["delta","reprap","3DR", "fun"],
+   "thumbnailURL": "https://github.com/kaosat-dev/3DR-Tiki/raw/master/img/3DR-Tiki.jpg",
+   "description": "A 3DR fork using 20 mm t-slots for sides"
+ }
