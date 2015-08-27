@@ -50,7 +50,9 @@ mountBolt_y = 20;
 foo = m3_wide_radius + 1.2;
 //carriage();
 //magnetMount();
-superCool();
+frontBackSlider();
+
+//sideCariage();
 
 module magnetMount(){
 
@@ -78,9 +80,41 @@ module magnetMount(){
   }
 }
 
-module superCool(){
+
+module sideCariage(halfLength=20){
+
+  difference(){
+    union(){
+      for (x = [-screw_xdist, screw_xdist])
+      {
+        cube([10, 10, halfLength], center = true);
+
+        translate([0,10,halfLength]) cube([10, 20, 10], center = true);
+      }
+    }
+
+    union(){
+      for (x = [-screw_xdist, screw_xdist])
+      {
+        cylinder(r = m3_wide_radius+0.2, h = halfLength+0.01, center = true, $fn = 12);
+      }
+    }
+  }
+
+}
+
+module frontBackSlider(cylinderJoints=false, slotGuideWidth=5.9, slotGuideHeight=3){
   
   boudinHeight = 12;
+
+  //if we have cylinderJoints , make basis rounded
+  jointBaseRes    = cylinderJoints ? 20 : 4;
+  jointBaseRadius = cylinderJoints ? (m3_wide_radius + 1.2) : 5;
+  jointBaseWidth  = cylinderJoints ? 10: 8;
+
+  slotGuideLength = 20;
+
+
   difference(){
     union(){
       import("centerPlate3.stl", convexity = 5);
@@ -88,28 +122,40 @@ module superCool(){
       {
 	      for (y = [-screw_ydist, screw_ydist])
 	      {
-		      translate([x, y, thickness/2])
-			      cylinder(r = m3_wide_radius + 1.2, h = boudinHeight, center = false, $fn = 20);
+          if(cylinderJoints){
+            translate([x, y, thickness/2])
+              cylinder(r = m3_wide_radius + 1.2, h = boudinHeight, center = false, $fn = 20);
+          }
 	      }
       }
+
+      if(slotGuideWidth>0){
+        for (x = [-1, 1]){
+          translate([0,-15*x,thickness/2+slotGuideHeight/2])cube([slotGuideWidth, slotGuideLength/2, slotGuideHeight], center = true);
+        }
+      }
+      
+
        hull() {
               translate([0, -screw_ydist, 0])
-              cube([20, 10, thickness], center = true);
+              cube([20, jointBaseWidth, thickness], center = true);
               for (x = [-screw_xdist, screw_xdist])
         		{
     					translate([x, -screw_ydist, 0])
-    				cylinder(r = m3_wide_radius + 1.2, h = thickness, center = true, $fn = 20);
+              rotate([0,0,45])
+    				  cylinder(r = jointBaseRadius, h = thickness, center = true, $fn = jointBaseRes);
     				
     				}
         }
         
         hull() {
               translate([0, screw_ydist, 0])
-              cube([20, 10, thickness], center = true);
+              cube([20, jointBaseWidth, thickness], center = true);
               for (x = [-screw_xdist, screw_xdist])
         		{
     					translate([x, screw_ydist, 0])
-    				cylinder(r = m3_wide_radius + 1.2, h = thickness, center = true, $fn = 20);
+               rotate([0,0,45])
+    				cylinder(r = jointBaseRadius, h = thickness, center = true, $fn = jointBaseRes);
     				
     				}
         }
@@ -133,7 +179,6 @@ module superCool(){
 		}
 	   
 	}
-
 }
 
 
